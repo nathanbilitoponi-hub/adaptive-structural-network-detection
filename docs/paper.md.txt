@@ -1,0 +1,50 @@
+# Adaptive Structural Network Detection and Anomaly Analysis Engine
+
+## Abstract
+
+We present an adaptive computational framework designed to detect structural networks embedded in noisy spatial point clouds.  
+The method identifies filament-like structures, extracts their graph topology, and detects structural anomalies using a multi-stage pipeline.
+
+The algorithm combines local covariance analysis, adaptive thresholding, graph extraction, and anomaly scoring to recover meaningful structures even under high noise conditions.
+
+Benchmark experiments demonstrate improved structural straightness compared to baseline extraction methods.  
+The system also provides anomaly detection capabilities useful for identifying irregular regions in complex networks.
+
+Potential applications include:
+
+- cosmic web filament detection in cosmology
+- vascular structure analysis in medical imaging
+- industrial inspection of pipelines and fiber networks
+- structural defect detection in materials science
+- spatial graph analysis in complex systems
+
+This repository contains the experimental prototype of the Adaptive Structural Network Detection and Anomaly Analysis Engine.
+
+
+## Pipeline
+
+The algorithm includes the following stages:
+
+1. spatial point cloud generation or acquisition
+2. local structure estimation using covariance eigenvalues
+3. filament core extraction
+4. graph construction and connectivity filtering
+5. benchmark comparison against baseline methods
+6. anomaly detection and anomaly scoring
+7. adaptive parameter optimization
+
+
+## Figures
+
+Figures included in this project:
+
+- V16 structural detection pipeline
+- V17 benchmark comparison
+- V18 anomaly detection map
+
+
+## Author
+
+Nathan Bili Toponi
+
+Independent Researcher
