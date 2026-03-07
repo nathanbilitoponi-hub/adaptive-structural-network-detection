@@ -7,7 +7,7 @@ Original file is located at
     https://colab.research.google.com/drive/1FQ8vyvk1edJNLTxkIapXaFid3B93aO91
 """
 
-!pip install ripser astropy pandas scipy astroML -q
+
 
 import numpy as np
 import pandas as pd
