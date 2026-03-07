@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 import numpy as np
 
-from structural_engine import detect_network
+from structural_network_engine_v1 import detect_network
 
 app = FastAPI()
 
