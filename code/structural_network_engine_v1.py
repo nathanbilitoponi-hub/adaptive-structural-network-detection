@@ -2172,7 +2172,7 @@ if len(filament_catalog) > 0:
 
 print("\nDONE.")
 
-=== COSMIC FILAMENT DETECTOR v1 ===
+
 sampled galaxies: 1800
 median nearest-neighbour scale: 0.023748129789616105
 initial graph edges: 4717
