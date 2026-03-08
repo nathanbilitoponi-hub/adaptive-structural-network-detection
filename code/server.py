@@ -41,4 +41,14 @@ def analyze_full(data: dict):
         mode="v47_compact"
     )
 
-    return result
+ return {
+    "status": result.get("status"),
+    "reason": result.get("reason"),
+    "mode": result.get("mode"),
+    "metrics_base": result.get("metrics_base", {}),
+    "trunk": result.get("trunk", {}),
+    "topology": result.get("topology", {}),
+    "structural_metrics": result.get("structural_metrics", {}),
+    "anomaly_detection": result.get("anomaly_detection", {}),
+    "structural_signature": result.get("structural_signature", {}),
+}
