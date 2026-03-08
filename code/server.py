@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 import numpy as np
 
 from structural_network_engine_v1 import detect_network, analyze_full_structure
@@ -81,3 +83,7 @@ def analyze_full(data: dict):
     }
 
     return to_jsonable(result)
+    @app.get("/demo", response_class=HTMLResponse)
+def demo():
+    with open("code/index.html", "r") as f:
+        return f.read()
