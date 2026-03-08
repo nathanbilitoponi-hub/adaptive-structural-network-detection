@@ -35,7 +35,7 @@ def to_jsonable(obj):
 # -----------------------------
 @app.get("/", response_class=HTMLResponse)
 def home():
-    with open("code/home.html", "r", encoding="utf-8") as f:
+    with open("home.html", "r", encoding="utf-8") as f:
         return f.read()
 
 
@@ -44,7 +44,7 @@ def home():
 # -----------------------------
 @app.get("/demo", response_class=HTMLResponse)
 def demo():
-    with open("code/index.html", "r", encoding="utf-8") as f:
+    with open("index.html", "r", encoding="utf-8") as f:
         return f.read()
 
 
