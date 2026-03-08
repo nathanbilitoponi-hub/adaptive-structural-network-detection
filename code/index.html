@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Structural Network Engine Demo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1100px;
+      margin: 40px auto;
+      padding: 0 20px;
+      background: #f7f7f8;
+      color: #111;
+    }
+    h1 {
+      margin-bottom: 8px;
+    }
+    p {
+      color: #444;
+    }
+    textarea {
+      width: 100%;
+      min-height: 220px;
+      font-family: monospace;
+      font-size: 14px;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      background: white;
+      box-sizing: border-box;
+    }
+    button {
+      margin-top: 14px;
+      padding: 12px 18px;
+      border: none;
+      border-radius: 10px;
+      background: #111827;
+      color: white;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    .card {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 18px;
+      margin-top: 20px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .metric {
+      background: #f3f4f6;
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .metric strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #0b1020;
+      color: #d1e7ff;
+      padding: 14px;
+      border-radius: 10px;
+      overflow-x: auto;
+    }
+    .error {
+      color: #b00020;
+      font-weight: bold;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Structural Network Engine Demo</h1>
+  <p>Paste a JSON payload with 3D points, then run full structural analysis.</p>
+
+  <div class="card">
+    <textarea id="payload">
+{
+  "points": [
+    [0,0,0],[0.5,0,0],[1,0,0],[1.5,0,0],[2,0,0],[2.5,0,0],[3,0,0],[3.5,0,0],[4,0,0],[4.5,0,0],
+    [5,0,0],[5.5,0,0],[6,0,0],[6.5,0,0],[7,0,0],[7.5,0,0],[8,0,0],[8.5,0,0],[9,0,0],[9.5,0,0],
+    [10,0,0],[10.5,0,0],[11,0,0],[11.5,0,0],[12,0,0],
+    [6,0.5,0],[6,1,0],[6,1.5,0],[6,2,0],[6,2.5,0],[6,3,0],[6,3.5,0],[6,4,0],
+    [6,-0.5,0],[6,-1,0],[6,-1.5,0],[6,-2,0],[6,-2.5,0],
+    [3,0.4,0],[3,0.8,0],[3,1.2,0],
+    [9,-0.4,0],[9,-0.8,0],[9,-1.2,0]
+  ]
+}
+    </textarea>
+    <button onclick="runAnalysis()">Analyze Full</button>
+    <div id="error" class="error"></div>
+  </div>
+
+  <div id="results" class="card" style="display:none;">
+    <h2>Summary</h2>
+    <div class="grid" id="summaryGrid"></div>
+
+    <h2>Critical Nodes</h2>
+    <pre id="criticalNodes"></pre>
+
+    <h2>Hub Nodes</h2>
+    <pre id="hubNodes"></pre>
+
+    <h2>Anomaly Detection</h2>
+    <pre id="anomalies"></pre>
+
+    <h2>Structural Signature</h2>
+    <pre id="signature"></pre>
+
+    <h2>Raw JSON</h2>
+    <pre id="rawJson"></pre>
+  </div>
+
+  <script>
+    const API_URL = "https://adaptive-structural-network-detection-4.onrender.com/analyze_full";
+
+    function setText(id, value) {
+      document.getElementById(id).textContent = value;
+    }
+
+    function addMetric(label, value) {
+      const div = document.createElement("div");
+      div.className = "metric";
+      div.innerHTML = `<strong>${label}</strong>${value}`;
+      return div;
+    }
+
+    async function runAnalysis() {
+      document.getElementById("error").textContent = "";
+      document.getElementById("results").style.display = "none";
+
+      let payload;
+      try {
+        payload = JSON.parse(document.getElementById("payload").value);
+      } catch (e) {
+        document.getElementById("error").textContent = "Invalid JSON payload.";
+        return;
+      }
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const text = await response.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error("Server did not return valid JSON.");
+        }
+
+        if (!response.ok) {
+          throw new Error(data.detail || "Server error.");
+        }
+
+        const metrics = data.metrics_base || {};
+        const sMetrics = data.structural_metrics || {};
+        const signature = (data.structural_signature || {}).signature || {};
+        const anomalyDetection = data.anomaly_detection || {};
+
+        const grid = document.getElementById("summaryGrid");
+        grid.innerHTML = "";
+        grid.appendChild(addMetric("Status", data.status ?? "-"));
+        grid.appendChild(addMetric("Mode", data.mode ?? "-"));
+        grid.appendChild(addMetric("Input Nodes", metrics.input_nodes ?? "-"));
+        grid.appendChild(addMetric("Backbone Nodes", metrics.backbone_nodes ?? "-"));
+        grid.appendChild(addMetric("Topological Nodes", metrics.topological_nodes ?? "-"));
+        grid.appendChild(addMetric("Topological Edges", metrics.topological_edges ?? "-"));
+        grid.appendChild(addMetric("Trunk Length", metrics.trunk_length ?? "-"));
+        grid.appendChild(addMetric("Trunk Straightness", metrics.trunk_straightness ?? "-"));
+        grid.appendChild(addMetric("Mean Edge Confidence", metrics.mean_edge_confidence ?? "-"));
+        grid.appendChild(addMetric("Critical Node Count", sMetrics.critical_node_count ?? "-"));
+        grid.appendChild(addMetric("Network Density", sMetrics.network_density ?? "-"));
+        grid.appendChild(addMetric("Anomaly Count", anomalyDetection.anomaly_count ?? "-"));
+
+        setText("criticalNodes", JSON.stringify(sMetrics.critical_nodes || [], null, 2));
+        setText("hubNodes", JSON.stringify(sMetrics.hub_nodes || [], null, 2));
+        setText("anomalies", JSON.stringify(anomalyDetection, null, 2));
+        setText("signature", JSON.stringify(signature, null, 2));
+        setText("rawJson", JSON.stringify(data, null, 2));
+
+        document.getElementById("results").style.display = "block";
+      } catch (err) {
+        document.getElementById("error").textContent = err.message;
+      }
+    }
+  </script>
+</body>
+</html>
