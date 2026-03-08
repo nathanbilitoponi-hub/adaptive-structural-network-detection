@@ -81,9 +81,9 @@ def analyze_full(data: dict):
 
         "structural_signature": result.get("structural_signature", {}).get("signature", {})
     }
+return to_jsonable(result)
 
-    return to_jsonable(result)
-    @app.get("/demo", response_class=HTMLResponse)
+@app.get("/demo", response_class=HTMLResponse)
 def demo():
     with open("code/index.html", "r") as f:
         return f.read()
