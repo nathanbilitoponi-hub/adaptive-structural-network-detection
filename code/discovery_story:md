@@ -1,0 +1,46 @@
+# Discovery Story
+
+Adaptive Structural Network Detection originated from an exploratory investigation of large scale cosmic structure.
+
+The initial goal was to analyze galaxy distributions from the Sloan Digital Sky Survey (SDSS) and understand the filamentary structure of the universe.
+
+During early experiments, galaxy positions were converted into a spatial point cloud using right ascension, declination and redshift.
+
+A custom algorithm was then developed to identify filament-like structures emerging from noisy spatial distributions.
+
+The first successful experiment was performed on a dataset of approximately 50,000 galaxies.  
+The algorithm was able to extract a connected backbone structure representing cosmic filaments.
+
+During subsequent testing an unexpected observation appeared.
+
+The same structural extraction method worked not only on cosmological data but also on completely different spatial systems.
+
+The algorithm successfully reconstructed structural skeletons in:
+
+- synthetic branching networks
+- urban road-like spatial distributions
+- vascular-like biological networks
+- noisy spatial point clouds
+
+This revealed that the method was not specific to cosmology.
+
+Instead, it behaved as a **general structural extraction engine** capable of identifying trunk paths, backbone graphs and topology in complex spatial systems.
+
+Further testing showed strong robustness to noise.
+
+Under increasing noise conditions the engine maintained higher precision and F1 score compared to a baseline approach.
+
+This suggested that the algorithm captures structural signals that remain stable even when the surrounding data becomes highly corrupted.
+
+The project then evolved into what is now called:
+
+Structural Network Engine
+
+A general purpose engine designed to detect structural backbones, topology and anomalies in spatial point clouds.
+
+The system is currently in prototype stage with:
+
+- working API
+- live demo
+- benchmark tests
+- multi domain experiments
