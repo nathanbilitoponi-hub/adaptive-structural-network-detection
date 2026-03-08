@@ -10,6 +10,24 @@ app = FastAPI(
 )
 
 
+def to_jsonable(obj):
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, (np.integer,)):
+        return int(obj)
+    if isinstance(obj, (np.floating,)):
+        return float(obj)
+    if isinstance(obj, (np.bool_,)):
+        return bool(obj)
+    if isinstance(obj, dict):
+        return {str(k): to_jsonable(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [to_jsonable(v) for v in obj]
+    if isinstance(obj, tuple):
+        return [to_jsonable(v) for v in obj]
+    return obj
+
+
 @app.get("/")
 def root():
     return {
@@ -24,12 +42,12 @@ def analyze(data: dict):
 
     result = detect_network(points=pts, mode="v47_compact")
 
-    return {
-        "metrics": result["metrics"],
-        "backbone_points": result["backbone_points"].tolist(),
-        "trunk_points": result["trunk"]["points"].tolist(),
-        "topology": result["topology"],
-    }
+    return to_jsonable({
+        "metrics": result.get("metrics", {}),
+        "backbone_points": result.get("backbone_points", []),
+        "trunk_points": result.get("trunk", {}).get("points", []),
+        "topology": result.get("topology", {}),
+    })
 
 
 @app.post("/analyze_full")
@@ -41,14 +59,4 @@ def analyze_full(data: dict):
         mode="v47_compact"
     )
 
- return {
-    "status": result.get("status"),
-    "reason": result.get("reason"),
-    "mode": result.get("mode"),
-    "metrics_base": result.get("metrics_base", {}),
-    "trunk": result.get("trunk", {}),
-    "topology": result.get("topology", {}),
-    "structural_metrics": result.get("structural_metrics", {}),
-    "anomaly_detection": result.get("anomaly_detection", {}),
-    "structural_signature": result.get("structural_signature", {}),
-}
+    return to_jsonable(result)
