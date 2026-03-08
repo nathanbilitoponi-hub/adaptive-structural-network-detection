@@ -78,8 +78,14 @@ def analyze_full(data: dict):
     return to_jsonable(compact_result)
 
 
+@app.get("/", response_class=HTMLResponse)
+def home():
+    with open("code/home.html", "r", encoding="utf-8") as f:
+        return f.read()
+
+
 @app.get("/demo", response_class=HTMLResponse)
 def demo():
-    with open("index.html", "r", encoding="utf-8") as f:
-        html = f.read()
+    with open("code/index.html", "r", encoding="utf-8") as f:
+        return f.read()
     return HTMLResponse(content=html)
