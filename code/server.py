@@ -80,5 +80,6 @@ def analyze_full(data: dict):
 
 @app.get("/demo", response_class=HTMLResponse)
 def demo():
-    with open("code/index.html", "r", encoding="utf-8") as f:
-        return f.read()
+    with open("index.html", "r", encoding="utf-8") as f:
+        html = f.read()
+    return HTMLResponse(content=html)
