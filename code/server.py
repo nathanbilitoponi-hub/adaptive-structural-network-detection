@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
 import numpy as np
 
 from structural_network_engine_v1 import detect_network, analyze_full_structure
@@ -54,7 +53,6 @@ def analyze(data: dict):
 
 @app.post("/analyze_full")
 def analyze_full(data: dict):
-
     pts = np.array(data["points"], dtype=float)
 
     result = analyze_full_structure(
@@ -62,28 +60,25 @@ def analyze_full(data: dict):
         mode="v47_compact"
     )
 
-    return {
+    compact_result = {
         "status": result.get("status"),
         "reason": result.get("reason"),
         "mode": result.get("mode"),
-
         "metrics_base": result.get("metrics_base", {}),
-
         "trunk": {
             "nodes": result.get("trunk", {}).get("nodes", 0),
             "length": result.get("trunk", {}).get("length", 0),
             "straightness": result.get("trunk", {}).get("straightness", 0)
         },
-
         "structural_metrics": result.get("structural_metrics", {}),
-
         "anomaly_detection": result.get("anomaly_detection", {}),
-
         "structural_signature": result.get("structural_signature", {}).get("signature", {})
     }
-return to_jsonable(result)
+
+    return to_jsonable(compact_result)
+
 
 @app.get("/demo", response_class=HTMLResponse)
 def demo():
-    with open("code/index.html", "r") as f:
+    with open("code/index.html", "r", encoding="utf-8") as f:
         return f.read()
