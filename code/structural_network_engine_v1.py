@@ -1,164 +1,221 @@
 import numpy as np
-from scipy.spatial import cKDTree
-from scipy.sparse import csr_matrix
-from scipy.sparse.csgraph import connected_components, minimum_spanning_tree, shortest_path
-from sklearn.decomposition import PCA
 
 
-def _safe_unit(v):
-    n = np.linalg.norm(v)
-    if n == 0:
-        return None
-    return v / n
+def compute_structural_metrics(result):
+    """
+    Compute higher-level structural metrics from detect_network output.
+    Safe on partial / degenerate outputs.
+    """
+    metrics = result.get("metrics", {})
+    topo = result.get("topology", {})
+    trunk = result.get("trunk", {})
 
+    topo_edges = topo.get("topological_edges", [])
+    topological_nodes = topo.get("topological_node_ids_global", [])
 
-def _build_sparse(n, edges):
-    rows = []
-    cols = []
-    vals = []
+    edge_lengths = [float(e.get("length", 0.0)) for e in topo_edges]
+    total_topology_length = float(np.sum(edge_lengths)) if edge_lengths else 0.0
+    average_branch_length = float(np.mean(edge_lengths)) if edge_lengths else 0.0
+    max_branch_length = float(np.max(edge_lengths)) if edge_lengths else 0.0
 
-    for a, b, w in edges:
-        if a == b:
-            continue
+    node_degree = {}
+    for e in topo_edges:
+        u = int(e["u_global"])
+        v = int(e["v_global"])
+        node_degree[u] = node_degree.get(u, 0) + 1
+        node_degree[v] = node_degree.get(v, 0) + 1
 
-        rows.append(a)
-        cols.append(b)
-        vals.append(w)
+    critical_nodes = [int(n) for n, d in node_degree.items() if d >= 3]
+    hub_nodes = sorted(
+        [{"node_id": int(n), "degree": int(d)} for n, d in node_degree.items()],
+        key=lambda x: x["degree"],
+        reverse=True
+    )[:10]
 
-        rows.append(b)
-        cols.append(a)
-        vals.append(w)
+    topological_node_count = int(len(topological_nodes))
+    topological_edge_count = int(len(topo_edges))
 
-    return csr_matrix((vals, (rows, cols)), shape=(n, n))
+    if topological_node_count > 1:
+        network_density = float(
+            (2.0 * topological_edge_count) /
+            (topological_node_count * (topological_node_count - 1))
+        )
+    else:
+        network_density = 0.0
 
-
-def detect_network(points=None, mode="v47_compact", config=None):
-
-    pts = np.asarray(points, float)
-
-    if pts.ndim != 2 or pts.shape[1] != 3:
-        raise ValueError("points must be Nx3")
-
-    N = len(pts)
-
-    if N < 3:
-        return {
-            "metrics": {"input_nodes": int(N)},
-            "backbone_points": [],
-            "trunk": {"points": []},
-        }
-
-    tree = cKDTree(pts)
-
-    k = min(8, N)
-
-    d, idx = tree.query(pts, k=k)
-
-    base_scale = np.median(d[:, 1])
-
-    edges = []
-
-    for i in range(N):
-
-        for j in idx[i][1:]:
-
-            j = int(j)
-
-            if i == j:
-                continue
-
-            dist = np.linalg.norm(pts[i] - pts[j])
-
-            if dist < base_scale * 2.5:
-                edges.append((i, j, dist))
-
-    G = _build_sparse(N, edges)
-
-    ncomp, labels = connected_components(G)
-
-    mst = minimum_spanning_tree(G)
-
-    mst = mst + mst.T
-
-    rr, cc = mst.nonzero()
-
-    neighbors = {i: [] for i in range(N)}
-
-    for a, b in zip(rr, cc):
-        neighbors[a].append(b)
-        neighbors[b].append(a)
-
-    endpoints = []
-
-    for i in range(N):
-        if len(neighbors[i]) == 1:
-            endpoints.append(i)
-
-    if len(endpoints) < 2:
-        endpoints = list(range(min(2, N)))
-
-    D, pred = shortest_path(mst, directed=False, return_predecessors=True)
-
-    s = endpoints[0]
-    t = endpoints[-1]
-
-    path = [t]
-
-    cur = t
-
-    while cur != s and cur != -9999:
-        cur = pred[s, cur]
-        if cur == -9999:
-            break
-        path.append(cur)
-
-    path = path[::-1]
-
-    trunk_points = pts[path]
-
-    backbone_ids = []
-
-    pca_k = min(10, N)
-
-    for i in range(N):
-
-        _, ids = tree.query(pts[i], k=pca_k)
-
-        neigh = pts[np.atleast_1d(ids)]
-
-        if len(neigh) < 3:
-            continue
-
-        try:
-
-            pca = PCA(n_components=3)
-
-            pca.fit(neigh)
-
-            eig = pca.explained_variance_
-
-            filamentarity = eig[0] / (eig[1] + 1e-12)
-
-            if filamentarity > 3.0:
-                backbone_ids.append(i)
-
-        except:
-            pass
-
-    backbone_points = pts[backbone_ids]
-
-    metrics = {
-        "input_nodes": int(N),
-        "filament_nodes": int(len(backbone_ids)),
-        "graph_edges": int(len(edges)),
-        "components": int(ncomp),
-        "trunk_nodes": int(len(trunk_points)),
-    }
+    branch_lengths_sorted = sorted(edge_lengths, reverse=True)
+    branch_length_std = float(np.std(edge_lengths)) if edge_lengths else 0.0
+    trunk_length = float(trunk.get("length", 0.0))
+    trunk_straightness = float(trunk.get("straightness", 0.0))
 
     return {
-        "metrics": metrics,
-        "backbone_points": backbone_points,
-        "trunk": {"points": trunk_points},
+        "topological_node_count": topological_node_count,
+        "topological_edge_count": topological_edge_count,
+        "total_topology_length": total_topology_length,
+        "average_branch_length": average_branch_length,
+        "max_branch_length": max_branch_length,
+        "branch_length_std": branch_length_std,
+        "network_density": network_density,
+        "critical_node_count": int(len(critical_nodes)),
+        "critical_nodes": critical_nodes[:50],
+        "hub_nodes": hub_nodes,
+        "largest_branches": branch_lengths_sorted[:10],
+        "trunk_length": trunk_length,
+        "trunk_straightness": trunk_straightness,
+        "global_connected": bool(metrics.get("global_connected_after_reconnect", False)),
     }
 
-  
+
+def detect_structural_anomalies(result):
+    """
+    Simple rule-based anomaly detection.
+    This is intentionally interpretable and lightweight.
+    """
+    metrics = result.get("metrics", {})
+    topo = result.get("topology", {})
+    trunk = result.get("trunk", {})
+
+    anomalies = []
+
+    components_after = int(metrics.get("components_after_reconnect", 0))
+    if components_after > 1:
+        anomalies.append({
+            "type": "fragmented_network",
+            "severity": "medium" if components_after <= 3 else "high",
+            "value": components_after,
+            "message": f"Network remains split into {components_after} components."
+        })
+
+    mean_edge_conf = float(metrics.get("mean_edge_confidence", 0.0))
+    if mean_edge_conf < 0.45:
+        anomalies.append({
+            "type": "low_edge_confidence",
+            "severity": "medium",
+            "value": mean_edge_conf,
+            "message": "Average edge confidence is low."
+        })
+
+    trunk_straightness = float(trunk.get("straightness", 0.0))
+    if trunk_straightness < 0.15 and int(trunk.get("nodes", 0)) > 10:
+        anomalies.append({
+            "type": "high_trunk_tortuosity",
+            "severity": "low",
+            "value": trunk_straightness,
+            "message": "Trunk is highly tortuous / non-straight."
+        })
+
+    topo_edges = topo.get("topological_edges", [])
+    edge_lengths = [float(e.get("length", 0.0)) for e in topo_edges]
+    if edge_lengths:
+        mean_len = float(np.mean(edge_lengths))
+        std_len = float(np.std(edge_lengths))
+        threshold = mean_len + 2.5 * std_len
+
+        long_edges = []
+        for e in topo_edges:
+            L = float(e.get("length", 0.0))
+            if L > threshold:
+                long_edges.append({
+                    "u_global": int(e["u_global"]),
+                    "v_global": int(e["v_global"]),
+                    "length": L
+                })
+
+        if long_edges:
+            anomalies.append({
+                "type": "abnormally_long_branches",
+                "severity": "medium",
+                "count": len(long_edges),
+                "message": "Some branches are significantly longer than average.",
+                "examples": long_edges[:10]
+            })
+
+    return {
+        "anomaly_count": int(len(anomalies)),
+        "anomalies": anomalies
+    }
+
+
+def compute_structural_signature(result):
+    """
+    Compact signature vector describing the extracted structure.
+    Useful for comparisons and future ML / indexing.
+    """
+    metrics = result.get("metrics", {})
+    topo = result.get("topology", {})
+    trunk = result.get("trunk", {})
+
+    topo_edges = topo.get("topological_edges", [])
+    edge_lengths = [float(e.get("length", 0.0)) for e in topo_edges]
+
+    node_degree = {}
+    for e in topo_edges:
+        u = int(e["u_global"])
+        v = int(e["v_global"])
+        node_degree[u] = node_degree.get(u, 0) + 1
+        node_degree[v] = node_degree.get(v, 0) + 1
+
+    degrees = list(node_degree.values())
+    mean_degree = float(np.mean(degrees)) if degrees else 0.0
+    max_degree = int(np.max(degrees)) if degrees else 0
+    hub_ratio = float(np.mean(np.array(degrees) >= 3)) if degrees else 0.0
+
+    signature = {
+        "input_nodes": int(metrics.get("input_nodes", 0)),
+        "backbone_nodes": int(metrics.get("backbone_nodes", 0)),
+        "graph_edges": int(metrics.get("graph_edges", 0)),
+        "topological_nodes": int(metrics.get("topological_nodes", 0)),
+        "topological_edges": int(metrics.get("topological_edges", 0)),
+        "trunk_nodes": int(trunk.get("nodes", 0)),
+        "trunk_length": float(trunk.get("length", 0.0)),
+        "trunk_straightness": float(trunk.get("straightness", 0.0)),
+        "mean_edge_confidence": float(metrics.get("mean_edge_confidence", 0.0)),
+        "mean_degree": mean_degree,
+        "max_degree": max_degree,
+        "hub_ratio": hub_ratio,
+        "mean_branch_length": float(np.mean(edge_lengths)) if edge_lengths else 0.0,
+        "branch_length_std": float(np.std(edge_lengths)) if edge_lengths else 0.0,
+        "global_connected": int(bool(metrics.get("global_connected_after_reconnect", False))),
+    }
+
+    signature_vector = [
+        signature["input_nodes"],
+        signature["backbone_nodes"],
+        signature["graph_edges"],
+        signature["topological_nodes"],
+        signature["topological_edges"],
+        signature["trunk_nodes"],
+        signature["trunk_length"],
+        signature["trunk_straightness"],
+        signature["mean_edge_confidence"],
+        signature["mean_degree"],
+        signature["max_degree"],
+        signature["hub_ratio"],
+        signature["mean_branch_length"],
+        signature["branch_length_std"],
+        signature["global_connected"],
+    ]
+
+    return {
+        "signature": signature,
+        "signature_vector": signature_vector
+    }
+
+
+def analyze_full_structure(points, mode="v47_compact", config=None):
+    """
+    Full premium analysis wrapper.
+    """
+    result = detect_network(points=points, mode=mode, config=config)
+
+    return {
+        "status": result.get("status", "unknown"),
+        "reason": result.get("reason", ""),
+        "mode": result.get("mode", mode),
+        "metrics_base": result.get("metrics", {}),
+        "trunk": result.get("trunk", {}),
+        "topology": result.get("topology", {}),
+        "structural_metrics": compute_structural_metrics(result),
+        "anomaly_detection": detect_structural_anomalies(result),
+        "structural_signature": compute_structural_signature(result),
+    }
