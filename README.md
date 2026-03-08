@@ -44,6 +44,16 @@ docs/benchmark_report.md
 
 Results show that the engine maintains higher precision and F1 score under high noise conditions.
 
+## Research Notes
+
+Additional technical and research material is available in:
+
+- docs/method_overview.md
+- docs/benchmark_report.md
+- docs/benchmark_results.md
+- docs/discovery_story.md
+- docs/research/
+  
 ⸻
 
 Core Capabilities
