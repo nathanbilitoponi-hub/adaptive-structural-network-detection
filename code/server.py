@@ -4,6 +4,7 @@ import numpy as np
 
 from structural_network_engine_v1 import detect_network, analyze_full_structure
 
+
 app = FastAPI(
     title="Structural Network Engine API",
     version="1.0.0",
@@ -29,14 +30,38 @@ def to_jsonable(obj):
     return obj
 
 
-@app.get("/")
-def root():
+# -----------------------------
+# Homepage (product landing)
+# -----------------------------
+@app.get("/", response_class=HTMLResponse)
+def home():
+    with open("code/home.html", "r", encoding="utf-8") as f:
+        return f.read()
+
+
+# -----------------------------
+# Demo page
+# -----------------------------
+@app.get("/demo", response_class=HTMLResponse)
+def demo():
+    with open("code/index.html", "r", encoding="utf-8") as f:
+        return f.read()
+
+
+# -----------------------------
+# Basic API health check
+# -----------------------------
+@app.get("/api")
+def api_root():
     return {
         "status": "ok",
         "service": "Structural Network Engine API"
     }
 
 
+# -----------------------------
+# Compact analysis
+# -----------------------------
 @app.post("/analyze")
 def analyze(data: dict):
     pts = np.array(data["points"], dtype=float)
@@ -51,6 +76,9 @@ def analyze(data: dict):
     })
 
 
+# -----------------------------
+# Full structural analysis
+# -----------------------------
 @app.post("/analyze_full")
 def analyze_full(data: dict):
     pts = np.array(data["points"], dtype=float)
@@ -76,16 +104,3 @@ def analyze_full(data: dict):
     }
 
     return to_jsonable(compact_result)
-
-
-@app.get("/", response_class=HTMLResponse)
-def home():
-    with open("code/home.html", "r", encoding="utf-8") as f:
-        return f.read()
-
-
-@app.get("/demo", response_class=HTMLResponse)
-def demo():
-    with open("code/index.html", "r", encoding="utf-8") as f:
-        return f.read()
-    return HTMLResponse(content=html)
